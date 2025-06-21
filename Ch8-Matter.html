@@ -1,0 +1,1134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Supreme HTML Quiz</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    <style>
+        /* ... (your existing CSS rules) ... */
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden; /* Prevent scrollbars on body */
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+            background-color: #f0f2f5;
+            color: #333;
+            font-size: 16px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .quiz-container, .landing-container, .results-container {
+            background-color: #ffffff;
+            overflow: hidden;
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .landing-container, .results-container {
+            padding: 30px;
+            text-align: center;
+            justify-content: center;
+            align-items: center;
+            overflow-y: auto;
+            box-sizing: border-box;
+        }
+        .results-container {
+            justify-content: flex-start; /* Align results content to top */
+        }
+
+
+        .landing-container h1, .results-container h1 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-size: 2em;
+            font-weight: 600;
+            margin-top: 0;
+        }
+
+        .landing-container input[type="text"] {
+            padding: 10px 12px;
+            margin-bottom: 20px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            width: 80%;
+            max-width: 300px;
+            font-size: 1em;
+        }
+
+        .start-button, .nav-button, .review-button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: background-color 0.2s ease;
+            margin: 5px;
+            font-weight: 500;
+        }
+
+        .start-button:hover, .nav-button:hover, .review-button:hover {
+            background-color: #0056b3;
+        }
+
+        .quiz-header {
+            background-color: #343a40;
+            color: white;
+            padding: 12px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+            height: 48px; /* Fixed height */
+            box-sizing: border-box;
+        }
+
+        .quiz-header h1 {
+            margin: 0;
+            font-size: 1.5em;
+            font-weight: 600;
+        }
+
+        .user-info {
+            font-size: 0.95em;
+        }
+
+        .quiz-body {
+            display: flex;
+            flex-grow: 1;
+            overflow: hidden;
+            height: calc(100vh - 48px); /* Full height minus header */
+        }
+
+        .question-nav {
+            width: 200px;
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-right: 1px solid #dee2e6;
+            overflow-y: auto;
+            flex-shrink: 0;
+            height: 100%;
+            box-sizing: border-box;
+        }
+
+        .question-nav h3 {
+            margin-top: 0;
+            margin-bottom: 15px;
+            color: #495057;
+            border-bottom: 1px solid #dee2e6;
+            padding-bottom: 8px;
+            font-size: 1.1em;
+            font-weight: 600;
+        }
+
+        .question-nav-list {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(35px, 1fr));
+            gap: 8px;
+        }
+
+        .question-nav-item {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 35px;
+            height: 35px;
+            border: 1px solid #adb5bd;
+            border-radius: 50%;
+            cursor: pointer;
+            font-weight: normal;
+            background-color: #ffffff;
+            color: #495057;
+            transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+            position: relative;
+            font-size: 0.9em;
+        }
+
+        .question-nav-item:hover {
+            background-color: #e9ecef;
+        }
+
+        /* Status Colors */
+        .question-nav-item.status-default { background-color: #ffffff; color: #495057; border-color: #adb5bd;} /* White */
+        .question-nav-item.status-answered { background-color: #28a745; color: white; border-color: #218838; } /* Green */
+        .question-nav-item.status-unanswered { background-color: #dc3545; color: white; border-color: #c82333; } /* Red */
+        .question-nav-item.status-review { background-color: #6f42c1; color: white; border-color: #5a32a3; } /* Purple */
+        .question-nav-item.status-answered-review { background-color: #6f42c1; color: white; border-color: #5a32a3; } /* Purple + Green Dot */
+
+        /* Green dot for answered and reviewed */
+        .question-nav-item.status-answered-review::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            width: 7px;
+            height: 7px;
+            background-color: #28a745; /* Green dot */
+            border-radius: 50%;
+            border: 1px solid white;
+        }
+
+
+        .main-content {
+            flex-grow: 1;
+            padding: 25px;
+            display: flex;
+            flex-direction: column;
+            /* justify-content: space-between; REMOVED - Let content flow naturally */
+            overflow-y: auto; /* Allow scrolling for the whole main area */
+            height: 100%;
+            box-sizing: border-box;
+        }
+
+        .timers {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+            font-size: 1em;
+            font-weight: 500;
+            color: #495057;
+            flex-shrink: 0;
+        }
+
+        .timer {
+            background-color: #e9ecef;
+            padding: 6px 12px;
+            border-radius: 4px;
+            border: 1px solid #ced4da;
+        }
+        .timer.red {
+            color: #dc3545;
+            border-color: #dc3545;
+            font-weight: 600;
+        }
+
+        .question-area-wrapper { /* Wrapper for question and options */
+             /* Allow this area to take up available space before buttons */
+             flex-grow: 1;
+             margin-bottom: 20px; /* Space before buttons */
+             /* Removed overflow-y: auto; let main-content handle scrolling */
+        }
+
+        .question-text {
+            font-size: 1.2em;
+            margin-bottom: 20px;
+            line-height: 1.5;
+            color: #212529;
+            font-weight: 500;
+        }
+
+        /* --- NEW: Image Container Styling --- */
+        #question-image-container {
+             margin-bottom: 20px; /* Space between image and options */
+             text-align: center; /* Center the image */
+        }
+        #question-image-container img {
+             max-width: 100%; /* Make image responsive */
+             height: auto;    /* Maintain aspect ratio */
+             max-height: 300px; /* Optional: Limit max height */
+             border-radius: 4px; /* Optional: Rounded corners */
+             box-shadow: 0 2px 4px rgba(0,0,0,0.1); /* Optional: Slight shadow */
+        }
+         /* --- END NEW --- */
+
+        .options {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .options li {
+            margin-bottom: 10px;
+        }
+
+        .options label {
+            display: block;
+            background-color: #f8f9fa;
+            border: 1px solid #ced4da;
+            padding: 12px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.2s, border-color 0.2s;
+            font-size: 1em;
+            font-weight: normal;
+        }
+
+        .options input[type="radio"] {
+            margin-right: 10px;
+            display: none;
+        }
+
+         .options label:hover {
+             background-color: #e2e6ea;
+             border-color: #adb5bd;
+         }
+
+        .options input[type="radio"]:checked + label {
+            background-color: #cfe2ff;
+            border-color: #007bff;
+            font-weight: 500;
+            color: #0056b3;
+        }
+
+
+        .navigation-buttons {
+            display: flex;
+            justify-content: space-between;
+            border-top: 1px solid #dee2e6;
+            padding-top: 15px;
+            /* margin-top: auto; REMOVED - Let it sit naturally at the bottom */
+            flex-shrink: 0; /* Prevent buttons area from shrinking */
+        }
+
+        .nav-button.prev { background-color: #ffc107; color: #212529;}
+        .nav-button.prev:hover { background-color: #e0a800; }
+        .review-button { background-color: #6f42c1; }
+        .review-button:hover { background-color: #5a32a3; }
+        .nav-button.next { background-color: #28a745; }
+        .nav-button.next:hover { background-color: #218838; }
+        .nav-button:disabled {
+            background-color: #adb5bd;
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+        .nav-button.submit { background-color: #dc3545; }
+        .nav-button.submit:hover { background-color: #c82333; }
+
+
+        /* Results Page Specifics */
+        .results-content {
+             width: 100%;
+             max-width: 900px;
+             margin: 0 auto;
+             padding: 20px 0;
+        }
+
+        .score-card {
+            background-color: #e6f7ff;
+            border: 1px solid #007bff;
+            padding: 15px 20px;
+            margin-bottom: 25px;
+            border-radius: 5px;
+        }
+        .score-card h2 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            color: #0056b3;
+            font-size: 1.5em;
+            font-weight: 600;
+        }
+        .score-card p {
+            font-size: 1.2em;
+            font-weight: 500;
+            color: #343a40;
+            margin: 5px 0;
+        }
+
+        .results-section {
+            margin-bottom: 25px;
+            text-align: left;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+        }
+
+        .results-section h3 {
+            color: #495057;
+            border-bottom: 1px solid #dee2e6;
+            padding-bottom: 8px;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+            font-weight: 600;
+        }
+
+        .result-item {
+            border-bottom: 1px dashed #ced4da;
+            padding: 12px 0;
+        }
+        .result-item:last-child {
+            border-bottom: none;
+        }
+        .result-item p {
+            margin: 4px 0;
+            font-size: 1em;
+            line-height: 1.4;
+        }
+        .result-item .question { font-weight: 600; color: #343a40; }
+        .result-item .your-answer { color: #dc3545; font-weight: 500;}
+        .result-item .correct-answer { color: #28a745; font-weight: 500;}
+        .result-item .explanation { font-style: normal; color: #6c757d; margin-top: 8px; font-size: 0.95em;}
+
+        .time-analysis {
+             padding: 15px;
+             background-color: #f8f9fa;
+             border: 1px solid #dee2e6;
+             border-radius: 5px;
+             margin-bottom: 20px;
+        }
+        .time-analysis h3 {
+             color: #495057;
+             border-bottom: 1px solid #dee2e6;
+             padding-bottom: 8px;
+             margin-bottom: 15px;
+             text-align: left;
+             font-size: 1.2em;
+             font-weight: 600;
+        }
+        #timeChart {
+            max-height: 350px;
+            width: 100% !important;
+        }
+
+        /* Hide elements */
+        .hidden {
+            display: none !important;
+        }
+
+    </style>
+</head>
+<body>
+
+    <!-- Landing Page -->
+    <div id="landing-page" class="landing-container">
+        <h1>Welcome to the Quiz!</h1>
+        <input type="text" id="name-input" placeholder="Enter your name">
+        <br>
+        <button id="start-quiz-button" class="start-button">Start Quiz</button>
+    </div>
+
+    <!-- Quiz Page -->
+    <div id="quiz-page" class="quiz-container hidden">
+        <div class="quiz-header">
+            <h1>Quiz</h1>
+            <div class="user-info">
+                <span>Name: <span id="user-name"></span></span> |
+                <span>Total Time Left: <span id="total-timer">8:30</span></span>
+            </div>
+        </div>
+        <div class="quiz-body">
+            <div class="question-nav">
+                <h3> Index </h3>
+                <ul id="question-nav-list" class="question-nav-list">
+                    <!-- Question numbers will be dynamically added here -->
+                </ul>
+            </div>
+            <div class="main-content">
+                <!-- Top content wrapper -->
+                <div class="timers">
+                    <span id="current-question-number">Question X of Y</span>
+                    <span class="timer" id="question-timer">Time: 0s</span>
+                </div>
+                <!-- Scrollable question area -->
+                <div class="question-area-wrapper">
+                    <p id="question-text" class="question-text">Question text goes here...</p>
+                    <!-- === NEW: Image container === -->
+                    <div id="question-image-container"></div>
+                    <!-- === END NEW === -->
+                    <ul id="options-list" class="options">
+                        <!-- Options will be dynamically added here -->
+                    </ul>
+                </div>
+                 <!-- Navigation buttons at the bottom -->
+                <div class="navigation-buttons">
+                    <button id="prev-button" class="nav-button prev">Previous</button>
+                    <button id="review-button" class="review-button">Mark for Review</button>
+                    <button id="next-button" class="nav-button next">Next</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Results Page -->
+    <div id="results-page" class="results-container hidden">
+       <div class="results-content">
+            <h1>Quiz Results</h1>
+            <div id="score-card" class="score-card">
+                <h2>Score</h2>
+                <p><span id="score">0</span> / <span id="total-marks">0</span></p>
+                 <p>Well done, <span id="result-user-name">User</span>!</p>
+            </div>
+
+            <div id="wrong-unanswered-list" class="results-section">
+                <h3>Review Incorrect & Unanswered Questions</h3>
+                <!-- Incorrect/Unanswered questions will be added here -->
+            </div>
+
+            <div class="time-analysis">
+                 <h3>Time Analysis Per Question</h3>
+                <canvas id="timeChart"></canvas>
+            </div>
+             <button onclick="window.location.reload();" class="start-button">Restart Quiz</button>
+        </div>
+    </div>
+
+    <script>
+const quizData = [
+    {
+        question: "The temperature of a substance remains unaffected during its change of state.",
+        options: ["True", "False"],
+        answer: "True",
+        explanation: "Explanation for Question 1: During a change of state (e.g., melting or boiling), the heat energy supplied (latent heat) is used to overcome the forces of attraction between particles, rather than increasing their kinetic energy. Therefore, the temperature remains constant."
+    },
+    {
+        question: "Ice melts at 100°C.",
+        options: ["True", "False"],
+        answer: "False",
+        explanation: "Explanation for Question 2: Ice, which is solid water, melts at 0°C (at standard atmospheric pressure). Water boils at 100°C."
+    },
+    {
+        question: "Water at 100°C has more heat than the steam at 100°C.",
+        options: ["True", "False"],
+        answer: "False",
+        explanation: "Explanation for Question 3: Steam at 100°C contains more heat energy than water at 100°C. This is because the steam has absorbed additional energy, known as the latent heat of vaporization, to change from a liquid to a gaseous state."
+    },
+    {
+        question: "Evaporation of a liquid causes cooling.",
+        options: ["True", "False"],
+        answer: "True",
+        explanation: "Explanation for Question 4: Evaporation is a process where liquid turns into gas. This requires energy, which is taken from the remaining liquid and its surroundings, causing a cooling effect."
+    },
+    {
+        question: "Water evaporates only at 100°C.",
+        options: ["True", "False"],
+        answer: "False",
+        explanation: "Explanation for Question 5: Water can evaporate at any temperature. Boiling, which is a rapid form of vaporization, occurs specifically at 100°C (at standard pressure), but evaporation is a surface phenomenon that happens at all temperatures."
+    },
+    {
+        question: "Boiling takes place at all temperatures.",
+        options: ["True", "False"],
+        answer: "False",
+        explanation: "Explanation for Question 6: Boiling occurs at a specific temperature known as the boiling point, which depends on the substance and the surrounding pressure. Evaporation, however, can occur at any temperature."
+    },
+    {
+        question: "Evaporation takes place over the entire mass of the liquid.",
+        options: ["True", "False"],
+        answer: "False",
+        explanation: "Explanation for Question 7: Evaporation is a surface phenomenon; it only occurs from the surface of the liquid. Boiling is a bulk phenomenon that occurs throughout the entire mass of the liquid."
+    },
+    {
+        question: "The process of a gas converting directly into solid is called vaporization.",
+        options: ["True", "False"],
+        answer: "False",
+        explanation: "Explanation for Question 8: The process of a gas converting directly into a solid is called deposition or desublimation. Vaporization is the process of a liquid turning into a gas."
+    },
+    {
+        question: "At high altitudes, water boils above 100°C.",
+        options: ["True", "False"],
+        answer: "False",
+        explanation: "Explanation for Question 9: At high altitudes, the atmospheric pressure is lower. A lower pressure means water requires less energy to boil, so it boils at a temperature below 100°C."
+    },
+    {
+        question: "The melting point of ice is 0°C.",
+        options: ["True", "False"],
+        answer: "True",
+        explanation: "Explanation for Question 10: At standard atmospheric pressure, the melting point of ice is 0°C."
+    },
+    {
+        question: "Evaporation takes place at ________ temperature.",
+        options: ["all", "specific", "high", "low"],
+        answer: "all",
+        explanation: "Explanation for Question 11: Evaporation takes place at all temperature."
+    },
+    {
+        question: "________ process is just the reverse of melting.",
+        options: ["Freezing", "Boiling", "Melting", "Sublimation"],
+        answer: "Freezing",
+        explanation: "Explanation for Question 12: Freezing process is just the reverse of melting. (Melting: Solid → Liquid; Freezing: Liquid → Solid)."
+    },
+    {
+        question: "________ is a process that involves the direct conversion of a solid into its vapour on heating.",
+        options: ["Sublimation", "Vaporization", "Melting", "Condensation"],
+        answer: "Sublimation",
+        explanation: "Explanation for Question 13: Sublimation is a process that involves the direct conversion of a solid into its vapour on heating."
+    },
+    {
+        question: "The temperature at which a solid converts into a liquid is called its ________.",
+        options: ["melting point", "boiling point", "freezing point", "sublimation point"],
+        answer: "melting point",
+        explanation: "Explanation for Question 14: The temperature at which a solid converts into a liquid is called its melting point."
+    },
+    {
+        question: "The smallest unit of matter that exists freely in nature is called ________.",
+        options: ["molecule", "atom", "element", "compound"],
+        answer: "molecule",
+        explanation: "Explanation for Question 15: The smallest unit of matter that exists freely in nature is called molecule."
+    },
+    {
+        question: "Molecules of a substance are always in a state of ________ and so they possess ________.",
+        options: ["motion, kinetic energy", "rest, potential energy", "vibration, thermal energy", "rotation, mechanical energy"],
+        answer: "motion, kinetic energy",
+        explanation: "Explanation for Question 16: Molecules of a substance are always in a state of motion and so they possess kinetic energy."
+    },
+    {
+        question: "Intermolecular space is maximum in ________, less in ________, and the least in ________.",
+        options: ["gases, liquids, solids", "solids, liquids, gases", "liquids, gases, solids", "solids, gases, liquids"],
+        answer: "gases, liquids, solids",
+        explanation: "Explanation for Question 17: Intermolecular space is maximum in gases, less in liquids, and the least in solids."
+    },
+    {
+        question: "Intermolecular force of attraction is maximum in ________, less in ________, and the least in ________.",
+        options: ["solids, liquids, gases", "gases, liquids, solids", "liquids, solids, gases", "solids, gases, liquids"],
+        answer: "solids, liquids, gases",
+        explanation: "Explanation for Question 18: Intermolecular force of attraction is maximum in solids, less in liquids, and the least in gases."
+    },
+    {
+        question: "The inter-molecular force is maximum in:",
+        options: ["solids", "gases", "liquids", "none of the above"],
+        answer: "solids",
+        explanation: "Explanation for Question 19: The particles in solids are packed tightly in a fixed, often crystalline, structure, resulting in the strongest intermolecular forces."
+    },
+    {
+        question: "The inter-molecular space is maximum in:",
+        options: ["liquids", "solids", "gases", "none of the above"],
+        answer: "gases",
+        explanation: "Explanation for Question 20: In the gaseous state, particles are far apart and move randomly, leading to the largest space between them."
+    },
+    {
+        question: "The molecules can move freely anywhere in:",
+        options: ["gases", "liquids", "solids", "none of the above"],
+        answer: "gases",
+        explanation: "Explanation for Question 21: Molecules in a gas have high kinetic energy and very weak intermolecular forces, allowing them to move freely and randomly in any direction, filling the entire volume of their container."
+    },
+    {
+        question: "The molecules move only within the boundary of:",
+        options: ["liquids", "gases", "solids", "none of the above"],
+        answer: "liquids",
+        explanation: "Explanation for Question 22: While molecules in a liquid can move past each other, they are held together by intermolecular forces and remain within the collective boundary of the liquid."
+    },
+    {
+        question: "The temperature at which a liquid gets converted into its vapour state is called its:",
+        options: ["melting point", "boiling point", "dewpoint", "freezing point"],
+        answer: "boiling point",
+        explanation: "Explanation for Question 23: The boiling point is the specific temperature at which a liquid's vapor pressure equals the surrounding atmospheric pressure, causing it to rapidly convert to vapor."
+    },
+    {
+        question: "Rapid conversion of water into steam is an example of:",
+        options: ["evaporation", "freezing", "melting", "vapourization"],
+        answer: "vapourization",
+        explanation: "Explanation for Question 24: Vaporization is the general term for the phase transition from liquid to vapor. Boiling is a type of rapid vaporization."
+    },
+    {
+        question: "Evaporation takes place from the:",
+        options: ["surface of liquid", "throughout the liquid", "mid-portion of the liquid", "bottom of liquid"],
+        answer: "surface of liquid",
+        explanation: "Explanation for Question 25: Evaporation is a process where particles escape from the surface of a liquid into the gaseous phase."
+    },
+    {
+        question: "Boiling takes place from the:",
+        options: ["the surface of the liquid", "throughout the liquid", "mid-portion of liquid", "none of the above"],
+        answer: "throughout the liquid",
+        explanation: "Explanation for Question 26: Boiling is a bulk phenomenon. Once the boiling point is reached, bubbles of vapor can form anywhere within the body of the liquid and rise to the surface."
+    },
+    {   // Index 3
+        question: "Match The Following",
+        options: ["a-i, b-ii, c-iii, d-iv, e-v", "a-iv, b-i, c-v, d-ii, e-iii", "a-v, b-iii, c-i, d-ii, e-iv", "a-iii, b-v, c-iv, d-i, e-ii"],
+        answer: "a-iv, b-i, c-v, d-ii, e-iii",
+        explanation: "Matter is Made of molecules. Water Boils at 100° C. Water freezes at 0° C. Evaporation happens at all levels. Camphor Changes from Solid to Gas."
+    },
+            { // Index 3
+                question: "Ut Labore Et Dolore Magna Aliqua 4?",
+                options: ["Option A4", "Option B4", "Option C4", "Option D4"],
+                answer: "Option D4",
+                explanation: "Explanation for Question 4: The final option (D4) is the correct answer for the last dummy question.",
+                image: "Ch8-Matter:MatchTheFoll.png" // <-- ADDED IMAGE PROPERTY
+            },
+    ];
+    
+
+        // --- State Variables ---
+        let currentQuestionIndex = 0;
+        let userAnswers = new Array(quizData.length).fill(null);
+        let questionStatus = new Array(quizData.length).fill('default');
+        let markedForReview = new Array(quizData.length).fill(false);
+        let timeSpentPerQuestion = new Array(quizData.length).fill(0);
+        let questionTimerInterval;
+        let totalTimerInterval;
+        let questionViewStartTime = null;
+        let totalTimeSeconds = 8.5 * 60;
+        let userName = "";
+        let timeChart = null;
+        const QUESTION_TIME_LIMIT = 45;
+
+        // --- DOM Elements ---
+        const landingPage = document.getElementById('landing-page');
+        const quizPage = document.getElementById('quiz-page');
+        const resultsPage = document.getElementById('results-page');
+        const nameInput = document.getElementById('name-input');
+        const startQuizButton = document.getElementById('start-quiz-button');
+        const userNameDisplay = document.getElementById('user-name');
+        const resultUserNameDisplay = document.getElementById('result-user-name');
+        const totalTimerDisplay = document.getElementById('total-timer');
+        const questionNavList = document.getElementById('question-nav-list');
+        const currentQuestionNumberDisplay = document.getElementById('current-question-number');
+        const questionTimerDisplay = document.getElementById('question-timer');
+        const questionText = document.getElementById('question-text');
+        const optionsList = document.getElementById('options-list');
+        const prevButton = document.getElementById('prev-button');
+        const reviewButton = document.getElementById('review-button');
+        const nextButton = document.getElementById('next-button');
+        const scoreDisplay = document.getElementById('score');
+        const totalMarksDisplay = document.getElementById('total-marks');
+        const wrongUnansweredList = document.getElementById('wrong-unanswered-list');
+        const timeChartCanvas = document.getElementById('timeChart');
+        const imageContainer = document.getElementById('question-image-container'); // <-- Get image container
+
+        // --- Functions ---
+
+        function showPage(pageId) {
+            landingPage.classList.add('hidden');
+            quizPage.classList.add('hidden');
+            resultsPage.classList.add('hidden');
+            const pageToShow = document.getElementById(pageId);
+            if (pageToShow) {
+                pageToShow.classList.remove('hidden');
+            }
+        }
+
+        function startQuiz() {
+            userName = nameInput.value.trim() || "Guest";
+            userNameDisplay.textContent = userName;
+            resultUserNameDisplay.textContent = userName;
+            showPage('quiz-page');
+
+            totalMarksDisplay.textContent = quizData.length;
+            initializeQuestionNav();
+            loadQuestion(currentQuestionIndex);
+            startTotalTimer();
+        }
+
+        function initializeQuestionNav() {
+            questionNavList.innerHTML = '';
+            quizData.forEach((_, index) => {
+                const li = document.createElement('li');
+                li.textContent = index + 1;
+                li.classList.add('question-nav-item', `status-${questionStatus[index]}`);
+                li.dataset.index = index;
+                li.addEventListener('click', () => navigateToQuestion(index));
+                questionNavList.appendChild(li);
+            });
+             updateQuestionNavHighlight();
+        }
+
+        function updateQuestionNavHighlight() {
+             const items = questionNavList.querySelectorAll('.question-nav-item');
+             items.forEach((item, index) => {
+                 item.style.borderColor = '';
+                 item.style.borderWidth = '';
+                 if (index === currentQuestionIndex) {
+                     item.style.borderColor = '#007bff';
+                     item.style.borderWidth = '2px';
+                 }
+             });
+        }
+
+
+        function updateSingleQuestionNavStatus(index) {
+            const item = questionNavList.querySelector(`.question-nav-item[data-index="${index}"]`);
+            if (item) {
+                item.classList.remove('status-default', 'status-answered', 'status-unanswered', 'status-review', 'status-answered-review');
+                item.classList.add(`status-${questionStatus[index]}`);
+            }
+        }
+
+        function recordTimeSpent() {
+            if (questionViewStartTime !== null) {
+                const timeElapsedThisVisit = (Date.now() - questionViewStartTime) / 1000;
+                if (timeElapsedThisVisit > 0) {
+                    timeSpentPerQuestion[currentQuestionIndex] += timeElapsedThisVisit;
+                }
+                questionViewStartTime = null;
+            }
+        }
+
+        function updateStatus(index) {
+            const answered = userAnswers[index] !== null;
+            const reviewed = markedForReview[index];
+            let currentStatus = questionStatus[index];
+            let newStatus = currentStatus;
+
+            if (answered && reviewed) {
+                newStatus = 'answered-review';
+            } else if (answered && !reviewed) {
+                newStatus = 'answered';
+            } else if (!answered && reviewed) {
+                newStatus = 'review';
+            } else if (!answered && !reviewed) {
+                if (currentStatus === 'unanswered') {
+                    newStatus = 'unanswered';
+                } else if (currentStatus === 'default') {
+                     newStatus = 'default';
+                } else {
+                    newStatus = 'unanswered';
+                }
+            }
+
+            if (newStatus !== currentStatus) {
+                questionStatus[index] = newStatus;
+                updateSingleQuestionNavStatus(index);
+            }
+        }
+
+        function finalizeStatusOnLeave(index) {
+            const answered = userAnswers[index] !== null;
+            const reviewed = markedForReview[index];
+            let finalStatus = questionStatus[index];
+
+            if (!answered && !reviewed) {
+                finalStatus = 'unanswered';
+            } else if (answered && reviewed) {
+                finalStatus = 'answered-review';
+            } else if (answered && !reviewed) {
+                finalStatus = 'answered';
+            } else if (!answered && reviewed) {
+                finalStatus = 'review';
+            }
+
+            if (finalStatus !== questionStatus[index]) {
+                questionStatus[index] = finalStatus;
+            }
+            updateSingleQuestionNavStatus(index);
+        }
+
+
+        function loadQuestion(index) {
+            const question = quizData[index];
+            currentQuestionNumberDisplay.textContent = `Question ${index + 1} of ${quizData.length}`;
+            questionText.textContent = question.question;
+
+            // --- NEW: Handle Image Display ---
+            imageContainer.innerHTML = ''; // Clear previous image
+            if (question.image) {
+                const imgElement = document.createElement('img');
+                imgElement.src = question.image;
+                imgElement.alt = `Image for question ${index + 1}`; // Add alt text
+                // Style applied via CSS now
+                imageContainer.appendChild(imgElement);
+            }
+            // --- END NEW ---
+
+            optionsList.innerHTML = '';
+            question.options.forEach((option, i) => {
+                const li = document.createElement('li');
+                const inputId = `q${index}_option${i}`;
+                const input = document.createElement('input');
+                input.type = 'radio';
+                input.name = `question${index}`;
+                input.value = option;
+                input.id = inputId;
+                input.checked = userAnswers[index] === option;
+                input.addEventListener('change', () => {
+                    userAnswers[index] = option;
+                    updateStatus(index);
+                });
+
+                const label = document.createElement('label');
+                label.htmlFor = inputId;
+                label.textContent = option;
+
+                li.appendChild(input);
+                li.appendChild(label);
+                optionsList.appendChild(li);
+            });
+
+            prevButton.disabled = index === 0;
+            nextButton.textContent = index === quizData.length - 1 ? 'Submit' : 'Next';
+
+            reviewButton.textContent = markedForReview[index] ? 'Unmark Review' : 'Mark for Review';
+            reviewButton.style.backgroundColor = markedForReview[index] ? '#5a32a3' : '#6f42c1';
+
+            questionViewStartTime = Date.now();
+            startQuestionTimer();
+
+            updateQuestionNavHighlight();
+
+            const questionAreaWrapper = document.querySelector('.question-area-wrapper');
+            if (questionAreaWrapper) questionAreaWrapper.scrollTop = 0;
+        }
+
+        function navigateToQuestion(index) {
+            if (index < 0 || index >= quizData.length || index === currentQuestionIndex) return;
+
+            const leavingIndex = currentQuestionIndex;
+            recordTimeSpent();
+            finalizeStatusOnLeave(leavingIndex);
+
+            currentQuestionIndex = index;
+            loadQuestion(currentQuestionIndex);
+        }
+
+        function handleNext() {
+             const leavingIndex = currentQuestionIndex;
+             recordTimeSpent();
+             finalizeStatusOnLeave(leavingIndex);
+
+             if (currentQuestionIndex < quizData.length - 1) {
+                currentQuestionIndex++;
+                loadQuestion(currentQuestionIndex);
+            } else {
+                submitQuiz();
+            }
+        }
+
+        function handlePrev() {
+            const leavingIndex = currentQuestionIndex;
+            recordTimeSpent();
+            finalizeStatusOnLeave(leavingIndex);
+
+            if (currentQuestionIndex > 0) {
+               currentQuestionIndex--;
+               loadQuestion(currentQuestionIndex);
+            }
+        }
+
+        function toggleReview() {
+            markedForReview[currentQuestionIndex] = !markedForReview[currentQuestionIndex];
+            updateStatus(currentQuestionIndex);
+            reviewButton.textContent = markedForReview[currentQuestionIndex] ? 'Unmark Review' : 'Mark for Review';
+            reviewButton.style.backgroundColor = markedForReview[currentQuestionIndex] ? '#5a32a3' : '#6f42c1';
+        }
+
+
+        function startQuestionTimer() {
+            clearInterval(questionTimerInterval);
+
+            function updateTimerDisplay() {
+                let totalTimeSpentSoFar = timeSpentPerQuestion[currentQuestionIndex];
+                let timeElapsedThisVisit = 0;
+
+                if (questionViewStartTime) {
+                    timeElapsedThisVisit = (Date.now() - questionViewStartTime) / 1000;
+                }
+
+                let currentTotalTime = totalTimeSpentSoFar + timeElapsedThisVisit;
+                let displayTime = Math.round(currentTotalTime);
+
+                questionTimerDisplay.classList.remove('red');
+
+                if (currentTotalTime > QUESTION_TIME_LIMIT) {
+                    let exceededTime = Math.round(currentTotalTime - QUESTION_TIME_LIMIT);
+                    questionTimerDisplay.textContent = `Exceeded: ${exceededTime}s`;
+                    questionTimerDisplay.classList.add('red');
+                } else {
+                     questionTimerDisplay.textContent = `Time: ${displayTime}s`;
+                }
+            }
+
+            updateTimerDisplay();
+            questionTimerInterval = setInterval(updateTimerDisplay, 1000);
+        }
+
+        function startTotalTimer() {
+            clearInterval(totalTimerInterval);
+            let currentTime = totalTimeSeconds;
+
+            totalTimerInterval = setInterval(() => {
+                currentTime--;
+                if (currentTime <= 0) {
+                    clearInterval(totalTimerInterval);
+                    totalTimerDisplay.textContent = '00:00';
+                    alert("Time's up!");
+                    submitQuiz();
+                } else {
+                    const minutes = Math.floor(currentTime / 60);
+                    const seconds = currentTime % 60;
+                    totalTimerDisplay.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+                }
+            }, 1000);
+        }
+
+        function submitQuiz() {
+            recordTimeSpent();
+            finalizeStatusOnLeave(currentQuestionIndex);
+            clearInterval(questionTimerInterval);
+            clearInterval(totalTimerInterval);
+
+             questionStatus.forEach((status, index) => {
+                 if (index !== currentQuestionIndex) {
+                     finalizeStatusOnLeave(index);
+                 }
+             });
+
+            calculateResults();
+            showPage('results-page');
+        }
+
+        function calculateResults() {
+            let score = 0;
+            wrongUnansweredList.innerHTML = '';
+
+            quizData.forEach((question, index) => {
+                const isCorrect = userAnswers[index] === question.answer;
+                if (isCorrect) {
+                    score++;
+                }
+
+                if (questionStatus[index] === 'unanswered' || (userAnswers[index] !== null && !isCorrect)) {
+                    const resultItem = document.createElement('div');
+                    resultItem.classList.add('result-item');
+
+                    const qText = document.createElement('p');
+                    qText.classList.add('question');
+                    qText.innerHTML = `<strong>Q${index + 1}:</strong> ${question.question}`;
+                    resultItem.appendChild(qText);
+
+                    const yourAns = document.createElement('p');
+                    yourAns.innerHTML = `<strong>Your Answer:</strong> `;
+                    if (userAnswers[index] !== null) {
+                         yourAns.innerHTML += `<span class="your-answer">${userAnswers[index]}</span>`;
+                    } else {
+                         yourAns.innerHTML += `<span class="your-answer">Not Answered</span>`;
+                    }
+                     resultItem.appendChild(yourAns);
+
+
+                    const correctAns = document.createElement('p');
+                    correctAns.innerHTML = `<strong>Correct Answer:</strong> <span class="correct-answer">${question.answer}</span>`;
+                    resultItem.appendChild(correctAns);
+
+                    const explanation = document.createElement('p');
+                    explanation.classList.add('explanation');
+                    explanation.textContent = question.explanation;
+                    resultItem.appendChild(explanation);
+
+                    wrongUnansweredList.appendChild(resultItem);
+                }
+            });
+
+            scoreDisplay.textContent = score;
+            totalMarksDisplay.textContent = quizData.length;
+
+            setTimeout(generateTimeChart, 100);
+        }
+
+         function generateTimeChart() {
+            const ctx = timeChartCanvas.getContext('2d');
+             if (!ctx) {
+                console.error("Failed to get canvas context for time chart.");
+                return;
+            }
+            const labels = quizData.map((_, index) => `Q${index + 1}`);
+            const data = timeSpentPerQuestion.map(time => Math.round(time));
+
+            const normalColor = 'rgba(0, 123, 255, 0.3)';
+            const exceededColor = 'rgba(220, 53, 69, 0.3)';
+            const normalBorder = 'rgba(0, 123, 255, 1)';
+            const exceededBorder = 'rgba(220, 53, 69, 1)';
+
+            if (timeChart) {
+                timeChart.destroy();
+            }
+
+            try {
+                timeChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            {
+                                label: 'Time Spent (seconds)',
+                                data: data,
+                                fill: true,
+                                tension: 0.3,
+                                segment: {
+                                    borderColor: ctx => (ctx.p1.parsed.y > QUESTION_TIME_LIMIT) ? exceededBorder : normalBorder,
+                                    backgroundColor: ctx => {
+                                        const y1 = ctx.p0.parsed.y;
+                                        const y2 = ctx.p1.parsed.y;
+                                        return (y1 > QUESTION_TIME_LIMIT || y2 > QUESTION_TIME_LIMIT) ? exceededColor : normalColor;
+                                    }
+                                },
+                                 pointBackgroundColor: ctx => data[ctx.dataIndex] > QUESTION_TIME_LIMIT ? exceededBorder : normalBorder,
+                                 pointBorderColor: '#fff',
+                                 pointHoverBackgroundColor: '#fff',
+                                 pointHoverBorderColor: ctx => data[ctx.dataIndex] > QUESTION_TIME_LIMIT ? exceededBorder : normalBorder,
+
+                            },
+                            {
+                                type: 'line',
+                                label: `${QUESTION_TIME_LIMIT}s Threshold`,
+                                data: Array(quizData.length).fill(QUESTION_TIME_LIMIT),
+                                borderColor: 'rgba(220, 53, 69, 0.8)',
+                                borderWidth: 2,
+                                borderDash: [5, 5],
+                                fill: false,
+                                pointRadius: 0,
+                                pointHoverRadius: 0
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                title: {
+                                    display: true,
+                                    text: 'Time (seconds)'
+                                }
+                            },
+                            x: {
+                                 title: {
+                                    display: true,
+                                    text: 'Question Number'
+                                }
+                            }
+                        },
+                        plugins: {
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        if (context.datasetIndex === 1) return null;
+                                        let label = context.dataset.label || '';
+                                        if (label) label += ': ';
+                                        if (context.parsed.y !== null) label += context.parsed.y + 's';
+                                        return label;
+                                    }
+                                }
+                            }
+                        },
+                         interaction: {
+                            intersect: false,
+                            mode: 'index',
+                        },
+                    }
+                });
+            } catch (error) {
+                console.error("Chart.js error:", error);
+            }
+        }
+
+        // --- Event Listeners ---
+        startQuizButton.addEventListener('click', startQuiz);
+        prevButton.addEventListener('click', handlePrev);
+        nextButton.addEventListener('click', handleNext);
+        reviewButton.addEventListener('click', toggleReview);
+
+         nameInput.addEventListener('keypress', function(event) {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                startQuizButton.click();
+            }
+        });
+
+        // --- Initial Setup ---
+        showPage('landing-page');
+
+    </script>
+
+</body>
+</html>

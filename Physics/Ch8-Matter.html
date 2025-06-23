@@ -633,18 +633,40 @@ const quizData = [
         answer: "throughout the liquid",
         explanation: "Explanation for Question 26: Boiling is a bulk phenomenon. Once the boiling point is reached, bubbles of vapor can form anywhere within the body of the liquid and rise to the surface."
     },
-    {   // Index 3
-        question: "Match The Following",
-        options: ["a-i, b-ii, c-iii, d-iv, e-v", "a-iv, b-i, c-v, d-ii, e-iii", "a-v, b-iii, c-i, d-ii, e-iv", "a-iii, b-v, c-iv, d-i, e-ii"],
-        answer: "a-iv, b-i, c-v, d-ii, e-iii",
-        explanation: "Matter is Made of molecules. Water Boils at 100° C. Water freezes at 0° C. Evaporation happens at all levels. Camphor Changes from Solid to Gas."
-        image: "Ch8-Matter.MatchTheFoll.png" // <-- Added Image Property
-     },
-         
+          { // Index 3
+                question: "Match The Following",
+                options: ["a-i, b-ii, c-iii, d-iv, e-v", "a-iv, b-i, c-v, d-ii, e-iii", "a-v, b-iii, c-i, d-ii, e-iv", "a-iii, b-v, c-iv, d-i, e-ii"],
+                answer: "a-iv, b-i, c-v, d-ii, e-iii",
+                explanation: "Matter is Made of molecules. Water Boils at 100° C. Water freezes at 0° C. Evaporation happens at all levels. Camphor Changes from Solid to Gas.",
+                image: "MatchTheFoll.png" // <-- ADDED IMAGE PROPERTY
+            },
     ];
     
+        // Apply Fisher-Yates (Knuth) Shuffle to randomize the order of questions
+        function fisherYatesShuffle(array) {
+            let currentIndex = array.length, randomIndex;
 
+            // While there remain elements to shuffle.
+            while (currentIndex != 0) {
+
+                // Pick a remaining element.
+                randomIndex = Math.floor(Math.random() * currentIndex);
+                currentIndex--;
+
+                // And swap it with the current element.
+                [array[currentIndex], array[randomIndex]] = [
+                    array[randomIndex], array[currentIndex]];
+            }
+
+            return array;
+        }
+
+        // Shuffle the quizData array immediately after definition
+        fisherYatesShuffle(quizData);
+        
+        
         // --- State Variables ---
+         // Initialize state variables AFTER shuffling quizData
         let currentQuestionIndex = 0;
         let userAnswers = new Array(quizData.length).fill(null);
         let questionStatus = new Array(quizData.length).fill('default');
